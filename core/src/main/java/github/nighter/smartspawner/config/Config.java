@@ -36,6 +36,9 @@ public class Config {
     private final int silkTouchLevel;
     private final boolean sellAndXpBreak;
 
+    // Spawner ownership settings
+    private final boolean ownershipEnabled;
+
     // Spawner property settings
     private final boolean allowExpMending;
 
@@ -69,6 +72,9 @@ public class Config {
         this.silkTouchRequired = config.getBoolean("spawner_break.silk_touch.required", true);
         this.silkTouchLevel = config.getInt("spawner_break.silk_touch.level", 1);
         this.sellAndXpBreak = config.getBoolean("spawner_break.sell_and_xp_break", true);
+
+        // Spawner ownership settings
+        this.ownershipEnabled = config.getBoolean("spawner_ownership.enabled", true);
 
         // Spawner property settings
         this.allowExpMending = config.getBoolean(

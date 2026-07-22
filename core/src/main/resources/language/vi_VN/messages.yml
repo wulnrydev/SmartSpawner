@@ -33,6 +33,11 @@ spawner_protected:
   action_bar: '&#FF4444Spawner này đang được bảo vệ'
   sound: block.note_block.pling
 
+spawner_not_owner:
+  message: '&#FF4444Bạn không phải chủ sở hữu của spawner này.'
+  action_bar: '&#FF4444Spawner này thuộc về người khác.'
+  sound: block.note_block.pling
+
 inventory_full:
   message: '&#FF4444Túi đồ của bạn đã đầy.'
 

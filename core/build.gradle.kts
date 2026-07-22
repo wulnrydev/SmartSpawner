@@ -25,7 +25,9 @@ dependencies {
     compileOnly("com.github.brcdev-minecraft:shopgui-api:3.2.0") {
         exclude(group = "*")
     }
-    compileOnly("com.palmergames.bukkit.towny:towny:0.103.0.7")
+    // TEMP(local build): upstream repo repo.glaremasters.me is flaky (intermittent 502); use the
+    // locally provided Towny jar. Revert to compileOnly("com.palmergames.bukkit.towny:towny:0.103.0.7").
+    compileOnly(files(rootProject.file("Towny-0.103.0.0.jar")))
     compileOnly("com.bgsoftware:SuperiorSkyblockAPI:2026.2")
     compileOnly("com.github.MilkBowl:VaultAPI:1.7.1")
     compileOnly("su.nightexpress.excellenteconomy:ExcellentEconomy:2.8.0")
@@ -52,7 +54,10 @@ dependencies {
     }
 
     compileOnly("io.lumine:Mythic-Dist:5.12.1")
-    compileOnly("com.iridium:IridiumSkyblock:4.1.4")
+    // TEMP(local build): upstream repo repo.iridiumdevelopment.net is down (502); this optional
+    // integration is unused on this server, so a compile-only stub satisfies javac. Revert to
+    // compileOnly("com.iridium:IridiumSkyblock:4.1.4") once the repo is reachable again.
+    compileOnly(files("libs/iridiumskyblock-stub.jar"))
 
     implementation(platform("com.intellectualsites.bom:bom-newest:1.56"))
     compileOnly("com.intellectualsites.plotsquared:plotsquared-core")

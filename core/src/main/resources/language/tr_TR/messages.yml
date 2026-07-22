@@ -33,6 +33,11 @@ spawner_protected:
   action_bar: '&#FF4444Bu spawner korunuyor!'
   sound: block.note_block.pling
 
+spawner_not_owner:
+  message: '&#FF4444Bu spawnerin sahibi sen değilsin.'
+  action_bar: '&#FF4444Bu spawner başka birine ait.'
+  sound: block.note_block.pling
+
 inventory_full:
   message: '&#FF4444Envanterin dolu.'
 

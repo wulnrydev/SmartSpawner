@@ -289,6 +289,9 @@ public class SpawnerPlaceListener implements Listener {
         spawner.setSpawnerActive(true);
         spawner.setStackSize(stackSize);
 
+        // Record ownership: only this player (plus OPs) may break it or open its menu
+        spawner.setOwner(player);
+
         // Track player interaction for last interaction field
         spawner.updateLastInteractedPlayer(player.getName());
         spawnerManager.addSpawner(spawnerId, spawner);
@@ -323,6 +326,9 @@ public class SpawnerPlaceListener implements Listener {
         SpawnerData spawner = new SpawnerData(spawnerId, block.getLocation(), itemMaterial, plugin);
         spawner.setSpawnerActive(true);
         spawner.setStackSize(stackSize);
+
+        // Record ownership: only this player (plus OPs) may break it or open its menu
+        spawner.setOwner(player);
 
         // Track player interaction for last interaction field
         spawner.updateLastInteractedPlayer(player.getName());

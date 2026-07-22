@@ -28,8 +28,8 @@ public class SqliteToMySqlMigration {
                 spawner_range, spawner_stop, spawn_delay, max_spawner_loot_slots,
                 max_stored_exp, min_mobs, max_mobs, stack_size, max_stack_size,
                 last_spawn_time, is_at_capacity, last_interacted_player,
-                preferred_sort_item, filtered_items, inventory_data
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                preferred_sort_item, filtered_items, inventory_data, owner_uuid, owner_name
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE
                 world_name = VALUES(world_name),
                 loc_x = VALUES(loc_x),
@@ -53,9 +53,12 @@ public class SqliteToMySqlMigration {
                 last_interacted_player = VALUES(last_interacted_player),
                 preferred_sort_item = VALUES(preferred_sort_item),
                 filtered_items = VALUES(filtered_items),
-                inventory_data = VALUES(inventory_data)
+                inventory_data = VALUES(inventory_data),
+                owner_uuid = VALUES(owner_uuid),
+                owner_name = VALUES(owner_name)
             """;
 
+    // Base column list shared by both source SELECT variants.
     private static final String SELECT_ALL_SQLITE = """
             SELECT spawner_id, server_name, world_name, loc_x, loc_y, loc_z,
                    entity_type, item_spawner_material, spawner_exp, spawner_active,
@@ -63,6 +66,17 @@ public class SqliteToMySqlMigration {
                    max_stored_exp, min_mobs, max_mobs, stack_size, max_stack_size,
                    last_spawn_time, is_at_capacity, last_interacted_player,
                    preferred_sort_item, filtered_items, inventory_data
+            FROM smart_spawners
+            """;
+
+    // Used when the source SQLite database already has the ownership columns.
+    private static final String SELECT_ALL_SQLITE_WITH_OWNER = """
+            SELECT spawner_id, server_name, world_name, loc_x, loc_y, loc_z,
+                   entity_type, item_spawner_material, spawner_exp, spawner_active,
+                   spawner_range, spawner_stop, spawn_delay, max_spawner_loot_slots,
+                   max_stored_exp, min_mobs, max_mobs, stack_size, max_stack_size,
+                   last_spawn_time, is_at_capacity, last_interacted_player,
+                   preferred_sort_item, filtered_items, inventory_data, owner_uuid, owner_name
             FROM smart_spawners
             """;
 
@@ -140,9 +154,14 @@ public class SqliteToMySqlMigration {
         int failedCount = 0;
 
         try (Connection sqliteConn = DriverManager.getConnection(sqliteJdbcUrl);
-             Connection mysqlConn = mysqlManager.getConnection();
-             PreparedStatement selectStmt = sqliteConn.prepareStatement(SELECT_ALL_SQLITE);
-             PreparedStatement insertStmt = mysqlConn.prepareStatement(INSERT_SQL_MYSQL)) {
+             Connection mysqlConn = mysqlManager.getConnection()) {
+
+            // Older SQLite databases may not have the ownership columns yet; detect and adapt.
+            boolean sourceHasOwner = sqliteHasOwnerColumns(sqliteConn);
+            String selectSql = sourceHasOwner ? SELECT_ALL_SQLITE_WITH_OWNER : SELECT_ALL_SQLITE;
+
+            try (PreparedStatement selectStmt = sqliteConn.prepareStatement(selectSql);
+                 PreparedStatement insertStmt = mysqlConn.prepareStatement(INSERT_SQL_MYSQL)) {
 
             mysqlConn.setAutoCommit(false);
 
@@ -180,6 +199,13 @@ public class SqliteToMySqlMigration {
                         insertStmt.setString(23, rs.getString("preferred_sort_item"));
                         insertStmt.setString(24, rs.getString("filtered_items"));
                         insertStmt.setString(25, rs.getString("inventory_data"));
+                        if (sourceHasOwner) {
+                            insertStmt.setString(26, rs.getString("owner_uuid"));
+                            insertStmt.setString(27, rs.getString("owner_name"));
+                        } else {
+                            insertStmt.setString(26, null);
+                            insertStmt.setString(27, null);
+                        }
 
                         insertStmt.addBatch();
                         batchCount++;
@@ -219,9 +245,35 @@ public class SqliteToMySqlMigration {
 
             return failedCount == 0;
 
+            }
+
         } catch (SQLException e) {
             logger.log(Level.SEVERE, "Database error during SQLite to MySQL migration", e);
             return false;
         }
+    }
+
+    /**
+     * Checks whether the source SQLite database has the ownership columns.
+     * Older databases created before the ownership feature will not have them.
+     */
+    private boolean sqliteHasOwnerColumns(Connection sqliteConn) {
+        boolean hasOwnerUuid = false;
+        boolean hasOwnerName = false;
+        try (Statement stmt = sqliteConn.createStatement();
+             ResultSet rs = stmt.executeQuery("PRAGMA table_info(smart_spawners)")) {
+            while (rs.next()) {
+                String name = rs.getString("name");
+                if ("owner_uuid".equalsIgnoreCase(name)) {
+                    hasOwnerUuid = true;
+                } else if ("owner_name".equalsIgnoreCase(name)) {
+                    hasOwnerName = true;
+                }
+            }
+        } catch (SQLException e) {
+            plugin.debug("Could not inspect SQLite columns for ownership: " + e.getMessage());
+            return false;
+        }
+        return hasOwnerUuid && hasOwnerName;
     }
 }

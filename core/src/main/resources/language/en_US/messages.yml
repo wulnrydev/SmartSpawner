@@ -33,6 +33,11 @@ spawner_protected:
   action_bar: '&#FF4444This spawner is protected'
   sound: block.note_block.pling
 
+spawner_not_owner:
+  message: '&#FF4444You are not the owner of this spawner.'
+  action_bar: '&#FF4444This spawner belongs to someone else.'
+  sound: block.note_block.pling
+
 inventory_full:
   message: '&#FF4444Your inventory is full.'
 

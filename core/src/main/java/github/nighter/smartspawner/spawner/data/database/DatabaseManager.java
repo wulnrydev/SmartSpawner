@@ -81,6 +81,10 @@ public class DatabaseManager {
                 preferred_sort_item VARCHAR(64) DEFAULT NULL,
                 filtered_items TEXT DEFAULT NULL,
 
+                -- Ownership
+                owner_uuid VARCHAR(36) DEFAULT NULL,
+                owner_name VARCHAR(64) DEFAULT NULL,
+
                 -- Inventory (JSON blob)
                 inventory_data MEDIUMTEXT DEFAULT NULL,
 
@@ -133,6 +137,10 @@ public class DatabaseManager {
                 preferred_sort_item VARCHAR(64) DEFAULT NULL,
                 filtered_items TEXT DEFAULT NULL,
 
+                -- Ownership
+                owner_uuid VARCHAR(36) DEFAULT NULL,
+                owner_name VARCHAR(64) DEFAULT NULL,
+
                 -- Inventory (JSON blob)
                 inventory_data TEXT DEFAULT NULL,
 
@@ -155,7 +163,9 @@ public class DatabaseManager {
     private static final String SCHEMA_META_TABLE = "smartspawner_meta";
     private static final String SCHEMA_VERSION_KEY = "schema_version";
     private static final int LEGACY_SCHEMA_VERSION = 1;
-    private static final int CURRENT_SCHEMA_VERSION = 2;
+    // v2 added BIGINT XP columns; v3 added spawner ownership columns (owner_uuid, owner_name).
+    private static final int OWNERSHIP_SCHEMA_VERSION = 2;
+    private static final int CURRENT_SCHEMA_VERSION = 3;
 
     private static final String CREATE_META_TABLE_MYSQL = """
             CREATE TABLE IF NOT EXISTS smartspawner_meta (
@@ -357,7 +367,14 @@ public class DatabaseManager {
     }
 
     private int detectInitialSchemaVersion() throws SQLException {
-        return xpColumnsRequireMigration() ? LEGACY_SCHEMA_VERSION : CURRENT_SCHEMA_VERSION;
+        if (xpColumnsRequireMigration()) {
+            return LEGACY_SCHEMA_VERSION;
+        }
+        // XP already migrated but ownership columns missing -> start at v2 so the v2->v3 step runs.
+        if (ownerColumnsRequireMigration()) {
+            return OWNERSHIP_SCHEMA_VERSION;
+        }
+        return CURRENT_SCHEMA_VERSION;
     }
 
     private void setSchemaVersion(int version) throws SQLException {
@@ -378,7 +395,66 @@ public class DatabaseManager {
             migrateXpColumnsToBigIntIfNeeded();
             return;
         }
+        if (targetVersion == 3) {
+            addOwnerColumnsIfNeeded();
+            return;
+        }
         throw new SQLException("No database migration handler found for schema version: " + targetVersion);
+    }
+
+    /**
+     * Adds the ownership columns (owner_uuid, owner_name) to the spawners table if they are
+     * missing. Idempotent: existing columns are left untouched so re-runs are safe.
+     */
+    private void addOwnerColumnsIfNeeded() throws SQLException {
+        if (!columnExists("owner_uuid")) {
+            addColumn("owner_uuid", "VARCHAR(36)");
+            logger.info("Added owner_uuid column to smart_spawners table.");
+        }
+        if (!columnExists("owner_name")) {
+            addColumn("owner_name", "VARCHAR(64)");
+            logger.info("Added owner_name column to smart_spawners table.");
+        }
+    }
+
+    private boolean ownerColumnsRequireMigration() throws SQLException {
+        return !columnExists("owner_uuid") || !columnExists("owner_name");
+    }
+
+    private boolean columnExists(String columnName) throws SQLException {
+        if (storageMode == StorageMode.SQLITE) {
+            try (Connection conn = getConnection();
+                 Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery("PRAGMA table_info(smart_spawners)")) {
+                while (rs.next()) {
+                    if (columnName.equalsIgnoreCase(rs.getString("name"))) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        String sql = """
+                SELECT column_name FROM information_schema.columns
+                WHERE table_schema = ? AND table_name = 'smart_spawners' AND column_name = ?
+                """;
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, database);
+            stmt.setString(2, columnName);
+            try (ResultSet rs = stmt.executeQuery()) {
+                return rs.next();
+            }
+        }
+    }
+
+    private void addColumn(String columnName, String columnType) throws SQLException {
+        String sql = "ALTER TABLE smart_spawners ADD COLUMN " + columnName + " " + columnType + " DEFAULT NULL";
+        try (Connection conn = getConnection();
+             Statement stmt = conn.createStatement()) {
+            stmt.execute(sql);
+        }
     }
 
     private void migrateXpColumnsToBigIntIfNeeded() throws SQLException {

@@ -205,6 +205,7 @@ public class SmartSpawner extends JavaPlugin implements SmartSpawnerPlugin {
 
         long loadTime = System.currentTimeMillis() - startTime;
         getLogger().info("SmartSpawner has been enabled! (Loaded in " + loadTime + "ms)");
+        getLogger().info("improved by wulnrydev.com");
     }
 
     @Override

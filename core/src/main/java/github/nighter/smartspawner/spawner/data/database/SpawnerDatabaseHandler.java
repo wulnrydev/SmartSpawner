@@ -49,7 +49,7 @@ public class SpawnerDatabaseHandler implements SpawnerStorage {
                    spawner_exp, spawner_active, spawner_range, spawner_stop, spawn_delay,
                    max_spawner_loot_slots, max_stored_exp, min_mobs, max_mobs, stack_size,
                    max_stack_size, last_spawn_time, is_at_capacity, last_interacted_player,
-                   preferred_sort_item, filtered_items, inventory_data
+                   preferred_sort_item, filtered_items, inventory_data, owner_uuid, owner_name
             FROM smart_spawners WHERE server_name = ?
             """;
 
@@ -58,7 +58,7 @@ public class SpawnerDatabaseHandler implements SpawnerStorage {
                    spawner_exp, spawner_active, spawner_range, spawner_stop, spawn_delay,
                    max_spawner_loot_slots, max_stored_exp, min_mobs, max_mobs, stack_size,
                    max_stack_size, last_spawn_time, is_at_capacity, last_interacted_player,
-                   preferred_sort_item, filtered_items, inventory_data
+                   preferred_sort_item, filtered_items, inventory_data, owner_uuid, owner_name
             FROM smart_spawners WHERE server_name = ? AND spawner_id = ?
             """;
 
@@ -75,8 +75,8 @@ public class SpawnerDatabaseHandler implements SpawnerStorage {
                 spawner_range, spawner_stop, spawn_delay, max_spawner_loot_slots,
                 max_stored_exp, min_mobs, max_mobs, stack_size, max_stack_size,
                 last_spawn_time, is_at_capacity, last_interacted_player,
-                preferred_sort_item, filtered_items, inventory_data
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                preferred_sort_item, filtered_items, inventory_data, owner_uuid, owner_name
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE
                 world_name = VALUES(world_name),
                 loc_x = VALUES(loc_x),
@@ -100,7 +100,9 @@ public class SpawnerDatabaseHandler implements SpawnerStorage {
                 last_interacted_player = VALUES(last_interacted_player),
                 preferred_sort_item = VALUES(preferred_sort_item),
                 filtered_items = VALUES(filtered_items),
-                inventory_data = VALUES(inventory_data)
+                inventory_data = VALUES(inventory_data),
+                owner_uuid = VALUES(owner_uuid),
+                owner_name = VALUES(owner_name)
             """;
 
     // SQLite upsert syntax (ON CONFLICT)
@@ -111,8 +113,8 @@ public class SpawnerDatabaseHandler implements SpawnerStorage {
                 spawner_range, spawner_stop, spawn_delay, max_spawner_loot_slots,
                 max_stored_exp, min_mobs, max_mobs, stack_size, max_stack_size,
                 last_spawn_time, is_at_capacity, last_interacted_player,
-                preferred_sort_item, filtered_items, inventory_data
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                preferred_sort_item, filtered_items, inventory_data, owner_uuid, owner_name
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(server_name, spawner_id) DO UPDATE SET
                 world_name = excluded.world_name,
                 loc_x = excluded.loc_x,
@@ -136,7 +138,9 @@ public class SpawnerDatabaseHandler implements SpawnerStorage {
                 last_interacted_player = excluded.last_interacted_player,
                 preferred_sort_item = excluded.preferred_sort_item,
                 filtered_items = excluded.filtered_items,
-                inventory_data = excluded.inventory_data
+                inventory_data = excluded.inventory_data,
+                owner_uuid = excluded.owner_uuid,
+                owner_name = excluded.owner_name
             """;
 
     private static final String DELETE_SQL = """
@@ -326,6 +330,8 @@ public class SpawnerDatabaseHandler implements SpawnerStorage {
         stmt.setString(23, spawner.getPreferredSortItem() != null ? spawner.getPreferredSortItem().name() : null);
         stmt.setString(24, serializeFilteredItems(spawner.getFilteredItems()));
         stmt.setString(25, serializeInventory(spawner.getVirtualInventory()));
+        stmt.setString(26, spawner.getOwnerUuid() != null ? spawner.getOwnerUuid().toString() : null);
+        stmt.setString(27, spawner.getOwnerName());
     }
 
     @Override
@@ -476,6 +482,17 @@ public class SpawnerDatabaseHandler implements SpawnerStorage {
 
         // Load player interaction data
         spawner.setLastInteractedPlayer(rs.getString("last_interacted_player"));
+
+        // Load ownership data
+        String ownerUuidStr = rs.getString("owner_uuid");
+        if (ownerUuidStr != null && !ownerUuidStr.isEmpty()) {
+            try {
+                spawner.setOwnerUuid(UUID.fromString(ownerUuidStr));
+            } catch (IllegalArgumentException e) {
+                logger.warning("Invalid owner UUID for spawner " + spawnerId + ": " + ownerUuidStr);
+            }
+        }
+        spawner.setOwnerName(rs.getString("owner_name"));
 
         // Load preferred sort item
         String preferredSortItemStr = rs.getString("preferred_sort_item");

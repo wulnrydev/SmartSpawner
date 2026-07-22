@@ -215,6 +215,11 @@ public class SpawnerFileHandler implements SpawnerStorage {
                 // Save last interacted player separately
                 spawnerData.set(path + ".lastInteractedPlayer", spawner.getLastInteractedPlayer());
 
+                // Save ownership data
+                spawnerData.set(path + ".owner", spawner.getOwnerUuid() != null ?
+                        spawner.getOwnerUuid().toString() : null);
+                spawnerData.set(path + ".ownerName", spawner.getOwnerName());
+
                 // Save preferred sort item
                 spawnerData.set(path + ".preferredSortItem", spawner.getPreferredSortItem() != null ?
                         spawner.getPreferredSortItem().name() : null);
@@ -459,6 +464,17 @@ public class SpawnerFileHandler implements SpawnerStorage {
         // Load last interacted player
         String lastInteractedPlayer = spawnerData.getString(path + ".lastInteractedPlayer");
         spawner.setLastInteractedPlayer(lastInteractedPlayer);
+
+        // Load ownership data
+        String ownerUuidStr = spawnerData.getString(path + ".owner");
+        if (ownerUuidStr != null && !ownerUuidStr.isEmpty()) {
+            try {
+                spawner.setOwnerUuid(UUID.fromString(ownerUuidStr));
+            } catch (IllegalArgumentException e) {
+                logger.warning("Invalid owner UUID for spawner " + spawnerId + ": " + ownerUuidStr);
+            }
+        }
+        spawner.setOwnerName(spawnerData.getString(path + ".ownerName"));
 
         // Load preferred sort item
         String preferredSortItemStr = spawnerData.getString(path + ".preferredSortItem");

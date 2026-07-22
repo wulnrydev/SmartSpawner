@@ -76,6 +76,16 @@ spawner_break:
     level: 1            # Minimum level of Silk Touch required
 
 #---------------------------------------------------
+#           Spawner Ownership
+#---------------------------------------------------
+# When enabled, a Smart Spawner can only be broken and have its menu opened by
+# the player who placed it (the owner). Server operators and players with the
+# permission "smartspawner.owner.bypass" (default: op) can always bypass this.
+# Spawners placed before this feature was enabled have no owner and stay open to everyone.
+spawner_ownership:
+  enabled: true
+
+#---------------------------------------------------
 #           Natural/Vanilla Spawner Settings
 #---------------------------------------------------
 # Controls behavior of naturally generated dungeon spawners

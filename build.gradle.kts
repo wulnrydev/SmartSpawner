@@ -35,10 +35,6 @@ allprojects {
             url = uri("https://maven.enginehub.org/repo/")
         }
         maven {
-            name = "glaremasters repo"
-            url = uri("https://repo.glaremasters.me/repository/towny/")
-        }
-        maven {
             name = "bg-repo"
             url = uri("https://repo.bg-software.com/repository/api/")
         }
@@ -49,10 +45,6 @@ allprojects {
         maven {
             name = "nightexpress-releases"
             url = uri("https://repo.nightexpressdev.com/releases")
-        }
-        maven {
-            name = "iridiumdevelopment"
-            url = uri("https://nexus.iridiumdevelopment.net/repository/maven-releases/")
         }
         maven {
             name = "Lumine Releases"
@@ -69,6 +61,17 @@ allprojects {
         maven {
             name = "william278Releases"
             url = uri("https://repo.william278.net/releases")
+        }
+        // NOTE: temporarily moved last during local build — these mirrors are flaky/down
+        // (intermittent 502) and a 5xx aborts Gradle resolution for other artifacts before
+        // their real repo is tried.
+        maven {
+            name = "glaremasters repo"
+            url = uri("https://repo.glaremasters.me/repository/towny/")
+        }
+        maven {
+            name = "iridiumdevelopment"
+            url = uri("https://nexus.iridiumdevelopment.net/repository/maven-releases/")
         }
     }
 }

@@ -2,6 +2,7 @@ package github.nighter.smartspawner.spawner.properties;
 
 import github.nighter.smartspawner.SmartSpawner;
 import github.nighter.smartspawner.commands.hologram.SpawnerHologram;
+import github.nighter.smartspawner.config.Config;
 import github.nighter.smartspawner.spawner.lootgen.loot.EntityLootConfig;
 import github.nighter.smartspawner.spawner.lootgen.loot.LootItem;
 import github.nighter.smartspawner.spawner.sell.SellResult;
@@ -10,6 +11,7 @@ import lombok.Setter;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
@@ -101,6 +103,13 @@ public class SpawnerData {
 
     @Getter @Setter
     private String lastInteractedPlayer;
+
+    // Ownership: the player who placed the spawner. Only the owner (plus OPs / bypass
+    // permission holders) may break the spawner or open its menu when ownership is enabled.
+    @Getter @Setter
+    private UUID ownerUuid;
+    @Getter @Setter
+    private String ownerName;
 
     @Getter
     private SellResult lastSellResult;
@@ -542,6 +551,52 @@ public class SpawnerData {
 
     public void updateLastInteractedPlayer(String playerName) {
         this.lastInteractedPlayer = playerName;
+    }
+
+    /** Permission that lets staff bypass spawner ownership (defaults to OPs). */
+    public static final String OWNERSHIP_BYPASS_PERMISSION = "smartspawner.owner.bypass";
+
+    /**
+     * Sets the owner of this spawner from a player (records both UUID and name).
+     * @param player the player who now owns this spawner
+     */
+    public void setOwner(Player player) {
+        if (player == null) {
+            return;
+        }
+        this.ownerUuid = player.getUniqueId();
+        this.ownerName = player.getName();
+    }
+
+    /**
+     * Determines whether the given player is allowed to break this spawner or open its menu.
+     * <p>
+     * Access is granted when: the ownership feature is disabled, the spawner has no recorded
+     * owner (legacy spawners placed before ownership existed), the player is the owner, the
+     * player is a server operator, or the player has the {@link #OWNERSHIP_BYPASS_PERMISSION}.
+     *
+     * @param player the interacting player
+     * @return true if the player may interact with this spawner
+     */
+    public boolean canInteract(Player player) {
+        if (player == null) {
+            return false;
+        }
+        // Feature disabled globally -> behave like vanilla SmartSpawner (anyone with permission).
+        Config config = Config.get();
+        if (config != null && !config.isOwnershipEnabled()) {
+            return true;
+        }
+        // Legacy / unowned spawners stay open to everyone so existing spawners are not locked out.
+        if (ownerUuid == null) {
+            return true;
+        }
+        // The owner always has access.
+        if (ownerUuid.equals(player.getUniqueId())) {
+            return true;
+        }
+        // Operators and bypass-permission holders (server staff) always have access.
+        return player.isOp() || player.hasPermission(OWNERSHIP_BYPASS_PERMISSION);
     }
 
     /**

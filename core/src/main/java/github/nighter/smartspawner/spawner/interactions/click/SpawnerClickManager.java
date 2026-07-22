@@ -165,6 +165,12 @@ public class SpawnerClickManager implements Listener {
             return;
         }
 
+        // Ownership check: only the owner (plus OPs / bypass permission) may interact with the spawner
+        if (!spawner.canInteract(player)) {
+            messageService.sendMessage(player, "spawner_not_owner");
+            return;
+        }
+
         // Check permission on claimed land
         if (!CheckOpenMenu.CanPlayerOpenMenu(player, block.getLocation())) {
             messageService.sendMessage(player, "spawner_protected");

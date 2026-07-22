@@ -95,6 +95,13 @@ public class SpawnerBreakListener implements Listener {
             return;
         }
 
+        // Ownership check: only the owner (plus OPs / bypass permission) may break the spawner
+        if (spawner != null && !spawner.canInteract(player)) {
+            event.setCancelled(true);
+            messageService.sendMessage(player, "spawner_not_owner");
+            return;
+        }
+
         if (!breakConfig.isNaturalBreakable()) {
             if (spawner == null) {
                 block.setType(Material.AIR);
@@ -560,6 +567,13 @@ public class SpawnerBreakListener implements Listener {
         }
 
         if (player.getGameMode() == GameMode.CREATIVE) {
+            return;
+        }
+
+        // Ownership check: warn early if the player does not own this spawner
+        SpawnerData damagedSpawner = spawnerManager.getSpawnerByLocation(block.getLocation());
+        if (damagedSpawner != null && !damagedSpawner.canInteract(player)) {
+            messageService.sendMessage(player, "spawner_not_owner");
             return;
         }
 
