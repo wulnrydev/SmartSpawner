@@ -107,10 +107,6 @@ dependencies:
       load: BEFORE
       required: false
       join-classpath: true
-    IridiumSkyblock:
-      load: BEFORE
-      required: false
-      join-classpath: true
     PlotSquared:
       load: BEFORE
       required: false

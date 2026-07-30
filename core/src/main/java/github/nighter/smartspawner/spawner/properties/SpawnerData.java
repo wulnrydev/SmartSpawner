@@ -105,11 +105,17 @@ public class SpawnerData {
     private String lastInteractedPlayer;
 
     // Ownership: the player who placed the spawner. Only the owner (plus OPs / bypass
-    // permission holders) may break the spawner or open its menu when ownership is enabled.
+    // permission holders) may break the spawner. The owner may also open its menu, and can
+    // grant menu/storage access to other players via the whitelist below.
     @Getter @Setter
     private UUID ownerUuid;
     @Getter @Setter
     private String ownerName;
+
+    // Whitelist: extra players the owner has granted access to. Whitelisted players may open
+    // the spawner menu and use its storage, but (unlike the owner) they still cannot break it.
+    @Getter
+    private final Set<UUID> whitelistedPlayers = new HashSet<>();
 
     @Getter
     private SellResult lastSellResult;
@@ -569,14 +575,18 @@ public class SpawnerData {
     }
 
     /**
-     * Determines whether the given player is allowed to break this spawner or open its menu.
+     * Determines whether the given player has <b>owner-level control</b> of this spawner, i.e.
+     * whether they may break it (and manage its whitelist).
      * <p>
      * Access is granted when: the ownership feature is disabled, the spawner has no recorded
      * owner (legacy spawners placed before ownership existed), the player is the owner, the
      * player is a server operator, or the player has the {@link #OWNERSHIP_BYPASS_PERMISSION}.
+     * <p>
+     * Note: whitelisted players are intentionally <i>not</i> covered here — they may open the
+     * menu (see {@link #canOpenMenu(Player)}) but must never be able to break the spawner.
      *
      * @param player the interacting player
-     * @return true if the player may interact with this spawner
+     * @return true if the player may break / fully control this spawner
      */
     public boolean canInteract(Player player) {
         if (player == null) {
@@ -597,6 +607,84 @@ public class SpawnerData {
         }
         // Operators and bypass-permission holders (server staff) always have access.
         return player.isOp() || player.hasPermission(OWNERSHIP_BYPASS_PERMISSION);
+    }
+
+    /**
+     * Determines whether the given player may open this spawner's menu / storage.
+     * <p>
+     * This is broader than {@link #canInteract(Player)}: in addition to everyone with
+     * owner-level control, players on this spawner's {@link #whitelistedPlayers whitelist} are
+     * allowed to open the menu. Whitelisted players still cannot break the spawner.
+     *
+     * @param player the interacting player
+     * @return true if the player may open this spawner's menu
+     */
+    public boolean canOpenMenu(Player player) {
+        if (player == null) {
+            return false;
+        }
+        return canInteract(player) || isWhitelisted(player.getUniqueId());
+    }
+
+    /**
+     * Adds a player to this spawner's access whitelist.
+     * @param playerUuid the player's UUID
+     * @return true if the player was newly added, false if already whitelisted or null
+     */
+    public boolean addToWhitelist(UUID playerUuid) {
+        return playerUuid != null && whitelistedPlayers.add(playerUuid);
+    }
+
+    /**
+     * Removes a player from this spawner's access whitelist.
+     * @param playerUuid the player's UUID
+     * @return true if the player was removed, false if they were not whitelisted or null
+     */
+    public boolean removeFromWhitelist(UUID playerUuid) {
+        return playerUuid != null && whitelistedPlayers.remove(playerUuid);
+    }
+
+    /**
+     * @return true if the given player UUID is on this spawner's whitelist
+     */
+    public boolean isWhitelisted(UUID playerUuid) {
+        return playerUuid != null && whitelistedPlayers.contains(playerUuid);
+    }
+
+    /**
+     * @return the whitelisted player UUIDs as strings, for persistence (empty if none)
+     */
+    public List<String> getWhitelistUuidStrings() {
+        if (whitelistedPlayers.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<String> result = new ArrayList<>(whitelistedPlayers.size());
+        for (UUID uuid : whitelistedPlayers) {
+            result.add(uuid.toString());
+        }
+        return result;
+    }
+
+    /**
+     * Restores the whitelist from persisted UUID strings, replacing any current entries.
+     * Malformed entries are skipped so a single bad value cannot break loading.
+     * @param uuidStrings the stored UUID strings (may be null)
+     */
+    public void restoreWhitelist(Collection<String> uuidStrings) {
+        whitelistedPlayers.clear();
+        if (uuidStrings == null) {
+            return;
+        }
+        for (String raw : uuidStrings) {
+            if (raw == null || raw.trim().isEmpty()) {
+                continue;
+            }
+            try {
+                whitelistedPlayers.add(UUID.fromString(raw.trim()));
+            } catch (IllegalArgumentException ignored) {
+                // Skip malformed UUID entries.
+            }
+        }
     }
 
     /**

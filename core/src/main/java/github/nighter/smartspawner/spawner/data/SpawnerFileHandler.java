@@ -220,6 +220,10 @@ public class SpawnerFileHandler implements SpawnerStorage {
                         spawner.getOwnerUuid().toString() : null);
                 spawnerData.set(path + ".ownerName", spawner.getOwnerName());
 
+                // Save whitelist data (null when empty to keep files tidy)
+                List<String> whitelist = spawner.getWhitelistUuidStrings();
+                spawnerData.set(path + ".whitelist", whitelist.isEmpty() ? null : whitelist);
+
                 // Save preferred sort item
                 spawnerData.set(path + ".preferredSortItem", spawner.getPreferredSortItem() != null ?
                         spawner.getPreferredSortItem().name() : null);
@@ -475,6 +479,9 @@ public class SpawnerFileHandler implements SpawnerStorage {
             }
         }
         spawner.setOwnerName(spawnerData.getString(path + ".ownerName"));
+
+        // Load whitelist data
+        spawner.restoreWhitelist(spawnerData.getStringList(path + ".whitelist"));
 
         // Load preferred sort item
         String preferredSortItemStr = spawnerData.getString(path + ".preferredSortItem");

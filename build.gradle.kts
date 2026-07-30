@@ -62,16 +62,11 @@ allprojects {
             name = "william278Releases"
             url = uri("https://repo.william278.net/releases")
         }
-        // NOTE: temporarily moved last during local build — these mirrors are flaky/down
-        // (intermittent 502) and a 5xx aborts Gradle resolution for other artifacts before
-        // their real repo is tried.
+        // NOTE: kept last — this mirror is occasionally flaky (intermittent 502) and a 5xx
+        // aborts Gradle resolution for other artifacts before their real repo is tried.
         maven {
             name = "glaremasters repo"
             url = uri("https://repo.glaremasters.me/repository/towny/")
-        }
-        maven {
-            name = "iridiumdevelopment"
-            url = uri("https://nexus.iridiumdevelopment.net/repository/maven-releases/")
         }
     }
 }

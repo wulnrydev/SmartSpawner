@@ -84,6 +84,7 @@ public class DatabaseManager {
                 -- Ownership
                 owner_uuid VARCHAR(36) DEFAULT NULL,
                 owner_name VARCHAR(64) DEFAULT NULL,
+                whitelist TEXT DEFAULT NULL,
 
                 -- Inventory (JSON blob)
                 inventory_data MEDIUMTEXT DEFAULT NULL,
@@ -140,6 +141,7 @@ public class DatabaseManager {
                 -- Ownership
                 owner_uuid VARCHAR(36) DEFAULT NULL,
                 owner_name VARCHAR(64) DEFAULT NULL,
+                whitelist TEXT DEFAULT NULL,
 
                 -- Inventory (JSON blob)
                 inventory_data TEXT DEFAULT NULL,
@@ -163,9 +165,11 @@ public class DatabaseManager {
     private static final String SCHEMA_META_TABLE = "smartspawner_meta";
     private static final String SCHEMA_VERSION_KEY = "schema_version";
     private static final int LEGACY_SCHEMA_VERSION = 1;
-    // v2 added BIGINT XP columns; v3 added spawner ownership columns (owner_uuid, owner_name).
+    // v2 added BIGINT XP columns; v3 added spawner ownership columns (owner_uuid, owner_name);
+    // v4 added the spawner access whitelist column (whitelist).
     private static final int OWNERSHIP_SCHEMA_VERSION = 2;
-    private static final int CURRENT_SCHEMA_VERSION = 3;
+    private static final int WHITELIST_SCHEMA_VERSION = 3;
+    private static final int CURRENT_SCHEMA_VERSION = 4;
 
     private static final String CREATE_META_TABLE_MYSQL = """
             CREATE TABLE IF NOT EXISTS smartspawner_meta (
@@ -374,6 +378,10 @@ public class DatabaseManager {
         if (ownerColumnsRequireMigration()) {
             return OWNERSHIP_SCHEMA_VERSION;
         }
+        // Ownership present but whitelist column missing -> start at v3 so the v3->v4 step runs.
+        if (whitelistColumnRequiresMigration()) {
+            return WHITELIST_SCHEMA_VERSION;
+        }
         return CURRENT_SCHEMA_VERSION;
     }
 
@@ -399,7 +407,26 @@ public class DatabaseManager {
             addOwnerColumnsIfNeeded();
             return;
         }
+        if (targetVersion == 4) {
+            addWhitelistColumnIfNeeded();
+            return;
+        }
         throw new SQLException("No database migration handler found for schema version: " + targetVersion);
+    }
+
+    /**
+     * Adds the whitelist column to the spawners table if it is missing.
+     * Idempotent: an existing column is left untouched so re-runs are safe.
+     */
+    private void addWhitelistColumnIfNeeded() throws SQLException {
+        if (!columnExists("whitelist")) {
+            addColumn("whitelist", "TEXT");
+            logger.info("Added whitelist column to smart_spawners table.");
+        }
+    }
+
+    private boolean whitelistColumnRequiresMigration() throws SQLException {
+        return !columnExists("whitelist");
     }
 
     /**

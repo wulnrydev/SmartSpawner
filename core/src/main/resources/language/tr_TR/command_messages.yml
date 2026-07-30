@@ -201,3 +201,32 @@ gui_layout:
   error:
     message: "&#FF4444Menü düzeni değiştirilemedi. Lütfen konsolu kontrol edin."
     sound: block.note_block.pling
+
+# ──────────────────────────────────────────────────────
+#                     /ss whitelist
+# ──────────────────────────────────────────────────────
+whitelist:
+  usage:
+    message: "Kullanım: &#3498db/spawner whitelist <ekle|çıkar> <oyuncu>&f — önce kendi spawnerine bak."
+    sound: block.note_block.hat
+  not_looking_at_spawner:
+    message: "&#FF4444Kendi spawnerlerinden birine bakıyor olmalısın."
+    sound: block.note_block.pling
+  player_not_found:
+    message: "&#FF4444Oyuncu bulunamadı. Oyuncunun çevrimiçi olması gerekir."
+    sound: block.note_block.pling
+  is_owner:
+    message: "&#F0C857{player} &#F0C857zaten bu spawnerin sahibi, tam yetkisi var."
+    sound: block.note_block.hat
+  already_added:
+    message: "&#F0C857{player} &#F0C857zaten bu spawnere yetkili."
+    sound: block.note_block.hat
+  not_in_list:
+    message: "&#F0C857{player} &#F0C857zaten bu spawnere yetkili değil."
+    sound: block.note_block.hat
+  added:
+    message: "&a{player} &fartık bu spawnerin menüsünü ve deposunu açabilir."
+    sound: entity.experience_orb.pickup
+  removed:
+    message: "&a{player} &fartık bu spawnere erişemez."
+    sound: block.note_block.bass

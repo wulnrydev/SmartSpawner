@@ -36,7 +36,6 @@ softdepend:
   - Worlds
   - SuperiorSkyblock2
   - BentoBox
-  - IridiumSkyblock
 
   # RPG/Skill Plugins
   - AuraSkills

@@ -36,8 +36,9 @@ public class YamlToDatabaseMigration {
                 spawner_range, spawner_stop, spawn_delay, max_spawner_loot_slots,
                 max_stored_exp, min_mobs, max_mobs, stack_size, max_stack_size,
                 last_spawn_time, is_at_capacity, last_interacted_player,
-                preferred_sort_item, filtered_items, inventory_data, owner_uuid, owner_name
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                preferred_sort_item, filtered_items, inventory_data, owner_uuid, owner_name,
+                whitelist
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE
                 world_name = VALUES(world_name),
                 loc_x = VALUES(loc_x),
@@ -63,7 +64,8 @@ public class YamlToDatabaseMigration {
                 filtered_items = VALUES(filtered_items),
                 inventory_data = VALUES(inventory_data),
                 owner_uuid = VALUES(owner_uuid),
-                owner_name = VALUES(owner_name)
+                owner_name = VALUES(owner_name),
+                whitelist = VALUES(whitelist)
             """;
 
     // SQLite insert syntax
@@ -74,8 +76,9 @@ public class YamlToDatabaseMigration {
                 spawner_range, spawner_stop, spawn_delay, max_spawner_loot_slots,
                 max_stored_exp, min_mobs, max_mobs, stack_size, max_stack_size,
                 last_spawn_time, is_at_capacity, last_interacted_player,
-                preferred_sort_item, filtered_items, inventory_data, owner_uuid, owner_name
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                preferred_sort_item, filtered_items, inventory_data, owner_uuid, owner_name,
+                whitelist
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(server_name, spawner_id) DO UPDATE SET
                 world_name = excluded.world_name,
                 loc_x = excluded.loc_x,
@@ -101,7 +104,8 @@ public class YamlToDatabaseMigration {
                 filtered_items = excluded.filtered_items,
                 inventory_data = excluded.inventory_data,
                 owner_uuid = excluded.owner_uuid,
-                owner_name = excluded.owner_name
+                owner_name = excluded.owner_name,
+                whitelist = excluded.whitelist
             """;
 
     public YamlToDatabaseMigration(SmartSpawner plugin, DatabaseManager databaseManager) {
@@ -333,6 +337,11 @@ public class YamlToDatabaseMigration {
         String ownerUuid = yamlData.getString(path + ".owner");
         String ownerName = yamlData.getString(path + ".ownerName");
 
+        // Parse whitelist data (stored as a list of UUID strings)
+        List<String> whitelistUuids = yamlData.getStringList(path + ".whitelist");
+        String whitelist = (whitelistUuids == null || whitelistUuids.isEmpty())
+                ? null : String.join(",", whitelistUuids);
+
         // Parse inventory and convert to JSON format
         List<String> inventoryData = yamlData.getStringList(path + ".inventory");
         String inventoryJson = serializeInventoryToJson(inventoryData);
@@ -365,6 +374,7 @@ public class YamlToDatabaseMigration {
         stmt.setString(25, inventoryJson);
         stmt.setString(26, ownerUuid);
         stmt.setString(27, ownerName);
+        stmt.setString(28, whitelist);
 
         return true;
     }

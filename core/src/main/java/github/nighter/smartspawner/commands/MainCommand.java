@@ -12,13 +12,10 @@ import github.nighter.smartspawner.commands.near.NearSubCommand;
 import github.nighter.smartspawner.commands.prices.PricesSubCommand;
 import github.nighter.smartspawner.commands.reload.ReloadSubCommand;
 import github.nighter.smartspawner.commands.set.SetSubCommand;
+import github.nighter.smartspawner.commands.whitelist.WhitelistSubCommand;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
 import lombok.RequiredArgsConstructor;
-import org.bukkit.command.CommandSender;
-import org.bukkit.command.ConsoleCommandSender;
-import org.bukkit.command.RemoteConsoleCommandSender;
-import org.bukkit.entity.Player;
 import org.jspecify.annotations.NullMarked;
 
 import java.util.List;
@@ -38,6 +35,7 @@ public class MainCommand {
                 new ClearSubCommand(plugin),
                 new NearSubCommand(plugin, plugin.getSpawnerHighlightManager()),
                 new SetSubCommand(plugin),
+                new WhitelistSubCommand(plugin),
                 new FolderConfigSubCommand(plugin, FolderConfigSubCommand.ConfigOption.LANGUAGE),
                 new FolderConfigSubCommand(plugin, FolderConfigSubCommand.ConfigOption.GUI_LAYOUT)
         );
@@ -61,23 +59,11 @@ public class MainCommand {
     private LiteralCommandNode<CommandSourceStack> buildCommandWithName(String name) {
         LiteralArgumentBuilder<CommandSourceStack> builder = Commands.literal(name);
 
-        // Add permission requirement that works for console/RCON
-        builder.requires(source -> {
-            CommandSender sender = source.getSender();
-
-            // Always allow console and RCON
-            if (sender instanceof ConsoleCommandSender || sender instanceof RemoteConsoleCommandSender) {
-                return true;
-            }
-
-            // For players, check the base permission
-            if (sender instanceof Player player) {
-                return player.hasPermission("smartspawner.command.use") || player.isOp();
-            }
-
-            // Allow other command senders (like command blocks) if they have permission
-            return sender.hasPermission("smartspawner.command.use");
-        });
+        // Allow everyone into the command tree. Each subcommand enforces its own permission
+        // via its own requires() (see BaseSubCommand#build / hasPermission), so opening the
+        // root does not expose staff subcommands. This is required so the permission-less
+        // whitelist subcommand is reachable by regular players who own spawners.
+        builder.requires(source -> true);
 
         // Add all subcommands to the builder
         for (BaseSubCommand subCommand : subCommands) {
