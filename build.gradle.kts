@@ -5,6 +5,12 @@ plugins {
     id("com.gradleup.shadow") version "9.5.1" apply false
 }
 
+// The root project is only an aggregator. Producing its default JAR creates an empty artifact
+// named exactly like the real plugin, which can accidentally be deployed to a server.
+tasks.jar {
+    enabled = false
+}
+
 allprojects {
     apply(plugin = "java")
     apply(plugin = "maven-publish")

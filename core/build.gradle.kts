@@ -86,6 +86,8 @@ tasks.shadowJar {
     archiveBaseName.set("SmartSpawner")
     archiveVersion.set(version.toString())
     archiveClassifier.set("")
+    // Keep one canonical deployable artifact at the repository-level build/libs directory.
+    destinationDirectory.set(rootProject.layout.buildDirectory.dir("libs"))
     from(project(":api").sourceSets["main"].output)
     configurations = listOf(shade)
 
