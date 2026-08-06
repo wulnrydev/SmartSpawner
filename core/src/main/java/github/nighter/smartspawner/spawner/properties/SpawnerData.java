@@ -610,6 +610,18 @@ public class SpawnerData {
     }
 
     /**
+     * Determines whether the player may break this spawner.
+     * Only the recorded owner and server operators are allowed; whitelist entries and
+     * ownership-bypass permissions intentionally do not grant break access.
+     */
+    public boolean canBreak(Player player) {
+        if (player == null) {
+            return false;
+        }
+        return player.isOp() || (ownerUuid != null && ownerUuid.equals(player.getUniqueId()));
+    }
+
+    /**
      * Determines whether the given player may open this spawner's menu / storage.
      * <p>
      * This is broader than {@link #canInteract(Player)}: in addition to everyone with
